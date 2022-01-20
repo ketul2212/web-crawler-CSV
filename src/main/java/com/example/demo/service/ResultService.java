@@ -31,7 +31,7 @@ public class ResultService {
 
         String searchURL = GOOGLE_SEARCH_URL + "?q="+searchTerm;
 
-        Document doc = Jsoup.connect(searchURL).userAgent("Mozilla/5.0").get();
+        Document doc = Jsoup.connect(searchURL).userAgent("Chrome 70.0.3538.77").get();
 
         Elements results = doc.select(".kCrYT > a");
 
