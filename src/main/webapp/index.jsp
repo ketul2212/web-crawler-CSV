@@ -24,7 +24,7 @@
         <tbody>
             <c:forEach var="link" items="${links}" varStatus="status">
                 <tr>
-                    <td>${link}</td>
+                    <td><a href="${link}">${link}</a></td>
                 </tr>
             </c:forEach>
         </tbody>
