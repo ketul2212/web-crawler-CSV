@@ -81,6 +81,7 @@ public class ResultService {
             in.close();
             output.flush();
             output.close();
+            in.close();
         }
         catch (IOException e) {
             e.printStackTrace();
