@@ -28,6 +28,6 @@ public class ResultController {
 
     @GetMapping("/download")
     public void getCSV(HttpServletResponse response) throws IOException {
-        resultService.getCSV(response);
+        resultService.getCSV2(response);
     }
 }

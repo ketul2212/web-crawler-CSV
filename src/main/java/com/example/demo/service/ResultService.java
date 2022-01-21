@@ -29,20 +29,36 @@ public class ResultService {
 
         ModelAndView mv = new ModelAndView("index.jsp");
 
-        String searchURL = GOOGLE_SEARCH_URL + "?q="+searchTerm;
+        String[] terms = searchTerm.split(" ");
 
-        Document doc = Jsoup.connect(searchURL).userAgent("Chrome 70.0.3538.77").get();
+        if(terms.length > 1) {
+            for (int i = 0; i < terms.length; i++) {
+                String searchURLs = GOOGLE_SEARCH_URL + "?q=" + terms[i];
 
-        Elements results = doc.select(".kCrYT > a");
+                Document docs = Jsoup.connect(searchURLs).userAgent("Chrome 70.0.3538.77").get();
 
-        for (Element result : results) {
-            String linkHref = result.getElementsByTag("a").attr("href");
-            String[] x = linkHref.split("&");
-            links.add(x[0].substring(7));
+                Elements results2 = docs.select(".kCrYT > a");
+
+                for (Element result : results2) {
+                    String linkHref = result.getElementsByTag("a").attr("href");
+                    String[] x = linkHref.split("&");
+                    links.add(x[0].substring(7));
+                }
+            }
         }
+            String searchURL = GOOGLE_SEARCH_URL + "?q=" + searchTerm;
 
+            Document doc = Jsoup.connect(searchURL).userAgent("Chrome 70.0.3538.77").get();
+
+            Elements results = doc.select(".kCrYT > a");
+
+            for (Element result : results) {
+                String linkHref = result.getElementsByTag("a").attr("href");
+                String[] x = linkHref.split("&");
+                links.add(x[0].substring(7));
+
+            }
         mv.addObject("links", links);
-
         return mv;
     }
 
@@ -61,6 +77,47 @@ public class ResultService {
             for(int i = 0; i < header.length; i++)
                 header[i] = links.get(i);
             writer.writeNext(header);
+            writer.close();
+
+            String userDirectory = FileSystems.getDefault()
+                    .getPath("")
+                    .toAbsolutePath()
+                    .toString();
+
+            response.setContentType("text/csv");
+            response.setHeader("Content-disposition","attachment; filename=downloads.csv");
+
+            OutputStream output = response.getOutputStream();
+            FileInputStream in = new FileInputStream(userDirectory + "/downloads.csv");
+            byte[] buffer = new byte[4096];
+            int length;
+            while ((length = in.read(buffer)) > 0){
+                output.write(buffer, 0, length);
+            }
+            in.close();
+            output.flush();
+            output.close();
+            in.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void getCSV2(HttpServletResponse response) throws IOException {
+
+        File file = new File("downloads.csv");
+        try {
+            FileWriter outputfile = new FileWriter(file);
+            CSVWriter writer = new CSVWriter(outputfile);
+
+
+            writer.writeNext(new String[]{"links"});
+
+            for(int i = 0; i < links.size(); i++) {
+                String s = links.get(i);
+                writer.writeNext(new String[]{s});
+            }
             writer.close();
 
             String userDirectory = FileSystems.getDefault()
