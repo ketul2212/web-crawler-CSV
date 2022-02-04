@@ -10,7 +10,7 @@
 </head>
 
 <body>
-    <form action="/serach" method="post">
+    <form action="/search" method="post">
         <input type="text" name="searchTerm" placeholder="Search here...." /><br/>
         <input type="submit" name="submit"/>
     </form>

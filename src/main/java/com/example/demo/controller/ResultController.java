@@ -21,8 +21,8 @@ public class ResultController {
         return "index.jsp";
     }
 
-    @PostMapping("/serach")
-    public ModelAndView serachResult(String searchTerm) throws IOException {
+    @PostMapping("/search")
+    public ModelAndView searchResult(String searchTerm) throws IOException {
         return resultService.searchResult(searchTerm);
     }
 
