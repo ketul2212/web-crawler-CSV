@@ -17,216 +17,113 @@ import java.util.Set;
 @Service
 public class ResultService {
 
-    private static final String GOOGLE_SEARCH_URL = "https://www.google.com/search";
+	private static final String GOOGLE_SEARCH_URL = "https://www.google.com/search";
 
-    private static Set<String> links = new HashSet<String>();
+	private static Set<String> links = new HashSet<String>();
 
-    public ModelAndView searchResult(String searchTerm) throws IOException {
+	public void searchResult(String searchTerm, HttpServletResponse response) throws IOException {
 
-       if(links.size() != 0)
-           links = new HashSet<String>();
+		if (links.size() != 0)
+			links = new HashSet<String>();
 
-        ModelAndView mv = new ModelAndView("index.jsp");
+		String[] terms = searchTerm.split(" ");
 
-        String[] terms = searchTerm.split(" ");
+		if (terms.length > 1) {
+			for (int i = 0; i < terms.length; i++) {
+				int finalI = i;
 
-        if(terms.length > 1) {
-            for (int i = 0; i < terms.length; i += 5) {
+				Thread thread = new Thread(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							int page = 0;
+							Document document;
+							Elements elements = null;
+							for (int i = 0; i < 10; i++) {
+								StringBuilder searchURLs = new StringBuilder(
+										GOOGLE_SEARCH_URL + "?q=" + terms[finalI] + "&start=" + page);
 
-                int finalI = i;
-                Thread thread1 = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    addResults(terms[finalI]);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch(IndexOutOfBoundsException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                thread1.start();
+								document = Jsoup.connect(searchURLs.toString()).timeout(100000)
+										.userAgent("Chrome 70.0.3538.77").get();
 
-                Thread thread2 = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    addResults(terms[finalI + 1]);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch(IndexOutOfBoundsException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                thread2.start();
+								elements = document.select(".kCrYT > a");
 
-                Thread thread3 = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    addResults(terms[finalI + 2]);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch(IndexOutOfBoundsException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                thread3.start();
+								for (Element element : elements) {
+									String linkHref = element.getElementsByTag("a").attr("href");
+									String[] x = linkHref.split("&");
+									links.add(x[0].substring(7));
+									System.out.println(linkHref);
+								}
 
-                Thread thread4 = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    addResults(terms[finalI + 3]);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch(IndexOutOfBoundsException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                thread4.start();
+								page += 10;
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (IndexOutOfBoundsException e) {
+							e.printStackTrace();
+						}
+					}
+				});
+				thread.start();
+			}
 
-                Thread thread5 = new Thread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    addResults(terms[finalI + 4]);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch(IndexOutOfBoundsException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
-                thread5.start();
-            }
+		}
 
-        }
+		int page = 0;
+		Document document;
+		Elements elements = null;
+		for (int i = 0; i < 10; i++) {
+			StringBuilder searchURLs = new StringBuilder(GOOGLE_SEARCH_URL + "?q=" + searchTerm + "&start=" + page);
 
-        addResults(searchTerm);
+			document = Jsoup.connect(searchURLs.toString()).timeout(100000).userAgent("Chrome 70.0.3538.77").get();
 
-        mv.addObject("links", links);
-        return mv;
-    }
+			elements = document.select(".kCrYT > a");
 
+			for (Element element : elements) {
+				String linkHref = element.getElementsByTag("a").attr("href");
+				String[] x = linkHref.split("&");
+				links.add(x[0].substring(7));
+				System.out.println(linkHref);
+			}
 
-    public void addResults(String searchTerm) throws IOException {
-        int page = 0;
-        Document document;
-        Elements elements = null;
-        for(int i = 0; i < 10; i++) {
-            StringBuilder searchURLs = new StringBuilder(GOOGLE_SEARCH_URL + "?q=" + searchTerm + "&start=" + page);
+			page += 10;
+		}
 
-            document = Jsoup.connect(searchURLs.toString()).timeout(100000).userAgent("Chrome 70.0.3538.77").get();
+		getCSV(response);
+	}
 
-            elements = document.select(".kCrYT > a");
+	public void getCSV(HttpServletResponse response) {
 
-            for (Element element : elements) {
-                String linkHref = element.getElementsByTag("a").attr("href");
-                String[] x = linkHref.split("&");
-                links.add(x[0].substring(7));
-                System.out.println(linkHref);
-            }
+		File file = new File("downloads.csv");
+		try {
+			FileWriter outputfile = new FileWriter(file);
+			CSVWriter writer = new CSVWriter(outputfile);
 
-            page += 10;
-        }
-    }
+			writer.writeNext(new String[] { "links" });
 
-/*
-    public void getCSV(HttpServletResponse response) {
+			for (String s : links)
+				writer.writeNext(new String[] { s });
 
-        File file = new File("downloads.csv");
-        try {
-            FileWriter outputfile = new FileWriter(file);
-            CSVWriter writer = new CSVWriter(outputfile);
+			writer.close();
 
-            String[] header = new String[links.size()];
-            for(int i = 0; i < header.length; i++)
-                header[i] = "link" + (i + 1);
-            writer.writeNext(header);
+			String userDirectory = FileSystems.getDefault().getPath("").toAbsolutePath().toString();
 
-            for(int i = 0; i < header.length; i++)
-                header[i] = links.get(i);
-            writer.writeNext(header);
-            writer.close();
+			response.setContentType("text/csv");
+			response.setHeader("Content-disposition", "attachment; filename=downloads.csv");
 
-            String userDirectory = FileSystems.getDefault()
-                    .getPath("")
-                    .toAbsolutePath()
-                    .toString();
+			OutputStream output = response.getOutputStream();
+			FileInputStream in = new FileInputStream(userDirectory + "/downloads.csv");
+			byte[] buffer = new byte[4096];
+			int length;
+			while ((length = in.read(buffer)) > 0)
+				output.write(buffer, 0, length);
 
-            response.setContentType("text/csv");
-            response.setHeader("Content-disposition","attachment; filename=downloads.csv");
-
-            OutputStream output = response.getOutputStream();
-            FileInputStream in = new FileInputStream(userDirectory + "/downloads.csv");
-            byte[] buffer = new byte[4096];
-            int length;
-            while ((length = in.read(buffer)) > 0){
-                output.write(buffer, 0, length);
-            }
-            in.close();
-            output.flush();
-            output.close();
-            in.close();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-*/
-
-    public void getCSV2(HttpServletResponse response) {
-
-        File file = new File("downloads.csv");
-        try {
-            FileWriter outputfile = new FileWriter(file);
-            CSVWriter writer = new CSVWriter(outputfile);
-
-
-            writer.writeNext(new String[]{"links"});
-
-            for (String s : links)
-                writer.writeNext(new String[]{s});
-
-            writer.close();
-
-            String userDirectory = FileSystems.getDefault()
-                    .getPath("")
-                    .toAbsolutePath()
-                    .toString();
-
-            response.setContentType("text/csv");
-            response.setHeader("Content-disposition","attachment; filename=downloads.csv");
-
-            OutputStream output = response.getOutputStream();
-            FileInputStream in = new FileInputStream(userDirectory + "/downloads.csv");
-            byte[] buffer = new byte[4096];
-            int length;
-            while ((length = in.read(buffer)) > 0)
-                output.write(buffer, 0, length);
-
-            in.close();
-            output.flush();
-            output.close();
-            in.close();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+			in.close();
+			output.flush();
+			output.close();
+			in.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
